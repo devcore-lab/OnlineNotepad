@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OnlineNotepad — Free, No Ads, No Signup</title>
+<style>
+:root{
+  --bg:#f6f7fb;--card:#fff;--text:#111827;--muted:#64748b;--line:#dbe3ef;
+  --primary:#4f46e5;--primary2:#7c3aed;--green:#16a34a;--shadow:0 20px 55px rgba(15,23,42,.12);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;background:
+  radial-gradient(circle at top right,rgba(124,58,237,.17),transparent 35%),
+  radial-gradient(circle at bottom left,rgba(79,70,229,.12),transparent 35%),var(--bg);
+  color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;
+  display:flex;flex-direction:column;
+}
+body.dark{--bg:#0f172a;--card:#111827;--text:#f8fafc;--muted:#94a3b8;--line:#273449;--shadow:0 20px 60px rgba(0,0,0,.35)}
+.top{
+  padding:18px 22px 10px;border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.76);backdrop-filter:blur(12px)
+}
+.dark .top{background:rgba(17,24,39,.78)}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:28px;letter-spacing:-.05em}
+.sub{color:var(--muted);font-size:14px;margin-top:3px}
+.badges{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.badge{
+  background:rgba(22,163,74,.12);color:var(--green);border:1px solid rgba(22,163,74,.28);
+  border-radius:999px;padding:8px 12px;font-weight:900;font-size:14px
+}
+.dark .badge{background:rgba(34,197,94,.12);color:#86efac}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button{
+  border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:13px;
+  padding:11px 14px;font-weight:800;cursor:pointer;transition:.16s transform,.16s box-shadow
+}
+button:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(15,23,42,.12)}
+#clear{color:#dc2626}
+main{flex:1;padding:22px;display:flex}
+.wrap{
+  flex:1;display:flex;flex-direction:column;background:rgba(255,255,255,.84);backdrop-filter:blur(10px);
+  border:1px solid var(--line);border-top:5px solid var(--primary);border-radius:24px;box-shadow:var(--shadow);overflow:hidden;
+}
+.dark .wrap{background:rgba(17,24,39,.86)}
+textarea{
+  flex:1;width:100%;min-height:58vh;border:0;outline:0;resize:none;background:transparent;color:var(--text);
+  padding:28px;font:20px/1.65 Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;
+}
+textarea::placeholder{color:var(--muted)}
+.status{
+  display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);
+  padding:12px 18px;color:var(--muted);font-size:13px
+}
+.saved{color:var(--primary);animation:pulse .28s}
+.notice{
+  margin:0 22px 18px;padding:13px 15px;border:1px solid var(--line);border-radius:16px;
+  background:rgba(255,255,255,.6);color:var(--muted);font-size:13px
+}
+.dark .notice{background:rgba(17,24,39,.55)}
+.notice b{color:var(--text)}
+@keyframes pulse{50%{transform:scale(1.03)}}
+@media(max-width:700px){
+  .header{align-items:flex-start;flex-direction:column}
+  main{padding:10px}
+  textarea{font-size:18px;padding:18px}
+}
+</style>
+</head>
+<body>
+<section class="top">
+  <div class="header">
+    <div>
+      <h1>OnlineNotepad</h1>
+      <div class="sub">Start typing. Your note saves automatically on this device.</div>
+    </div>
+    <div class="actions">
+      <button id="export">Export .txt</button>
+      <button id="theme">Dark</button>
+      <button id="clear">Clear</button>
+    </div>
+  </div>
+  <div class="badges" aria-label="Trust badges">
+    <div class="badge">✓ No ads</div>
+    <div class="badge">✓ No signup</div>
+    <div class="badge">✓ No cost</div>
+    <div class="badge">✓ Private by default</div>
+  </div>
+</section>
+
+<main>
+  <section class="wrap">
+    <textarea id="note" autofocus placeholder="Type your note here..."></textarea>
+    <div class="status">
+      <span id="saved">Ready</span>
+      <span id="stats">0 words • 0 characters</span>
+    </div>
+  </section>
+</main>
+
+<div class="notice">
+  <b>Important:</b> this notepad stores your note only in your browser using localStorage. It is not uploaded, synced, sold, or shared.
+</div>
+
+<script>
+const KEY="onlinenotepad_one_note_text_v2";
+const THEME="onlinenotepad_one_note_dark_v2";
+const note=document.getElementById("note");
+const saved=document.getElementById("saved");
+const stats=document.getElementById("stats");
+
+note.value=localStorage.getItem(KEY)||"";
+if(localStorage.getItem(THEME)==="1") document.body.classList.add("dark");
+updateStats();
+note.focus();
+
+function updateStats(){
+  const text=note.value;
+  const words=text.trim()?text.trim().split(/\s+/).length:0;
+  stats.textContent=`${words} words • ${text.length} characters`;
+}
+
+note.addEventListener("input",()=>{
+  localStorage.setItem(KEY,note.value);
+  updateStats();
+  saved.textContent="Saved ✓";
+  saved.classList.remove("saved"); void saved.offsetWidth; saved.classList.add("saved");
+});
+
+document.getElementById("export").onclick=()=>{
+  const text=note.value;
+  const firstLine=(text.split("\n")[0].trim()||"note").replace(/[^a-z0-9 _-]/gi,"").slice(0,40)||"note";
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"}));
+  a.download=firstLine+".txt";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),500);
+  note.focus();
+};
+
+document.getElementById("theme").onclick=()=>{
+  document.body.classList.toggle("dark");
+  localStorage.setItem(THEME,document.body.classList.contains("dark")?"1":"0");
+  note.focus();
+};
+
+document.getElementById("clear").onclick=()=>{
+  if(confirm("Clear the note?")){
+    note.value="";
+    localStorage.setItem(KEY,"");
+    updateStats();
+    saved.textContent="Cleared";
+    note.focus();
+  }
+};
+</script>
+</body>
+</html>
