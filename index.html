@@ -80,6 +80,7 @@ textarea::placeholder{color:var(--muted)}
       <button id="export">Export .txt</button>
       <button id="theme">Change backround</button>
       <button id="clear">Clear</button>
+      <button id="clear">Share</button>
     </div>
   </div>
   <div class="badges" aria-label="Trust badges">
@@ -107,12 +108,17 @@ textarea::placeholder{color:var(--muted)}
 <script>
 const KEY="onlinenotepad_one_note_text_v2";
 const THEME="onlinenotepad_one_note_dark_v2";
+
 const note=document.getElementById("note");
 const saved=document.getElementById("saved");
 const stats=document.getElementById("stats");
 
 note.value=localStorage.getItem(KEY)||"";
-if(localStorage.getItem(THEME)==="1") document.body.classList.add("dark");
+
+if(localStorage.getItem(THEME)==="1"){
+  document.body.classList.add("dark");
+}
+
 updateStats();
 note.focus();
 
@@ -122,27 +128,70 @@ function updateStats(){
   stats.textContent=`${words} words • ${text.length} characters`;
 }
 
+function flashStatus(message){
+  saved.textContent=message;
+  saved.classList.remove("saved");
+  void saved.offsetWidth;
+  saved.classList.add("saved");
+}
+
 note.addEventListener("input",()=>{
   localStorage.setItem(KEY,note.value);
   updateStats();
-  saved.textContent="Saved ✓";
-  saved.classList.remove("saved"); void saved.offsetWidth; saved.classList.add("saved");
+  flashStatus("Saved ✓");
 });
 
 document.getElementById("export").onclick=()=>{
   const text=note.value;
-  const firstLine=(text.split("\n")[0].trim()||"note").replace(/[^a-z0-9 _-]/gi,"").slice(0,40)||"note";
+  const firstLine=(text.split("\n")[0].trim()||"note")
+    .replace(/[^a-z0-9 _-]/gi,"")
+    .slice(0,40)||"note";
+
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"}));
   a.download=firstLine+".txt";
   a.click();
+
   setTimeout(()=>URL.revokeObjectURL(a.href),500);
+  note.focus();
+};
+
+document.getElementById("share").onclick=async()=>{
+  const url=window.location.href;
+
+  if(navigator.share){
+    try{
+      await navigator.share({
+        title:"OnlineNotepad",
+        text:"A simple online notepad with no signup, no ads, and local browser storage.",
+        url:url
+      });
+
+      flashStatus("Thanks for sharing ❤️");
+    }catch(e){
+      // User cancelled
+    }
+  }else{
+    try{
+      await navigator.clipboard.writeText(url);
+      flashStatus("Link copied ✓");
+      alert("The page link has been copied to your clipboard.");
+    }catch(e){
+      prompt("Copy this link:",url);
+    }
+  }
+
   note.focus();
 };
 
 document.getElementById("theme").onclick=()=>{
   document.body.classList.toggle("dark");
-  localStorage.setItem(THEME,document.body.classList.contains("dark")?"1":"0");
+
+  localStorage.setItem(
+    THEME,
+    document.body.classList.contains("dark")?"1":"0"
+  );
+
   note.focus();
 };
 
@@ -151,7 +200,7 @@ document.getElementById("clear").onclick=()=>{
     note.value="";
     localStorage.setItem(KEY,"");
     updateStats();
-    saved.textContent="Cleared";
+    flashStatus("Cleared");
     note.focus();
   }
 };
