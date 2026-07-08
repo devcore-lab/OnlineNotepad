@@ -1,208 +1,1176 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OnlineNotepad — Free, No Ads, No Signup</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>OnlineNotepad — Free Online Notepad</title>
+
+<meta name="description" content="A fast, free online notepad with no ads, no signup and automatic local saving. Import, export, clean and edit text instantly.">
+
 <style>
-:root{
-  --bg:#f6f7fb;--card:#fff;--text:#111827;--muted:#64748b;--line:#dbe3ef;
-  --primary:#4f46e5;--primary2:#7c3aed;--green:#16a34a;--shadow:0 20px 55px rgba(15,23,42,.12);
+:root {
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --text: #111827;
+    --muted: #64748b;
+    --border: #dbe3ef;
+    --primary: #4f46e5;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --shadow: 0 18px 50px rgba(15,23,42,.10);
 }
-*{box-sizing:border-box}
-body{
-  margin:0;min-height:100vh;background:
-  radial-gradient(circle at top right,rgba(124,58,237,.17),transparent 35%),
-  radial-gradient(circle at bottom left,rgba(79,70,229,.12),transparent 35%),var(--bg);
-  color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;
-  display:flex;flex-direction:column;
+
+* {
+    box-sizing: border-box;
 }
-body.dark{--bg:#0f172a;--card:#111827;--text:#f8fafc;--muted:#94a3b8;--line:#273449;--shadow:0 20px 60px rgba(0,0,0,.35)}
-.top{
-  padding:18px 22px 10px;border-bottom:1px solid var(--line);
-  background:rgba(255,255,255,.76);backdrop-filter:blur(12px)
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top right, rgba(124,58,237,.12), transparent 32%),
+        var(--bg);
+    color: var(--text);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
 }
-.dark .top{background:rgba(17,24,39,.78)}
-.header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-h1{margin:0;font-size:28px;letter-spacing:-.05em}
-.sub{color:var(--muted);font-size:14px;margin-top:3px}
-.badges{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
-.badge{
-  background:rgba(22,163,74,.12);color:var(--green);border:1px solid rgba(22,163,74,.28);
-  border-radius:999px;padding:8px 12px;font-weight:900;font-size:14px
+
+body.dark {
+    --bg: #0f172a;
+    --card: #111827;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --border: #293548;
+    --shadow: 0 18px 55px rgba(0,0,0,.35);
 }
-.dark .badge{background:rgba(34,197,94,.12);color:#86efac}
-.actions{display:flex;gap:10px;flex-wrap:wrap}
-button{
-  border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:13px;
-  padding:11px 14px;font-weight:800;cursor:pointer;transition:.16s transform,.16s box-shadow
+
+header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,.82);
+    backdrop-filter: blur(12px);
 }
-button:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(15,23,42,.12)}
-#clear{color:#dc2626}
-main{flex:1;padding:22px;display:flex}
-.wrap{
-  flex:1;display:flex;flex-direction:column;background:rgba(255,255,255,.84);backdrop-filter:blur(10px);
-  border:1px solid var(--line);border-top:5px solid var(--primary);border-radius:24px;box-shadow:var(--shadow);overflow:hidden;
+
+.dark header {
+    background: rgba(17,24,39,.85);
 }
-.dark .wrap{background:rgba(17,24,39,.86)}
-textarea{
-  flex:1;width:100%;min-height:58vh;border:0;outline:0;resize:none;background:transparent;color:var(--text);
-  padding:28px;font:20px/1.65 Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
 }
-textarea::placeholder{color:var(--muted)}
-.status{
-  display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);
-  padding:12px 18px;color:var(--muted);font-size:13px
+
+h1 {
+    margin: 0;
+    font-size: 28px;
+    letter-spacing: -.05em;
 }
-.saved{color:var(--primary);animation:pulse .28s}
-.notice{
-  margin:0 22px 18px;padding:13px 15px;border:1px solid var(--line);border-radius:16px;
-  background:rgba(255,255,255,.6);color:var(--muted);font-size:13px
+
+.subtitle {
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 14px;
 }
-.dark .notice{background:rgba(17,24,39,.55)}
-.notice b{color:var(--text)}
-@keyframes pulse{50%{transform:scale(1.03)}}
-@media(max-width:700px){
-  .header{align-items:flex-start;flex-direction:column}
-  main{padding:10px}
-  textarea{font-size:18px;padding:18px}
+
+.badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.badge {
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: rgba(22,163,74,.10);
+    border: 1px solid rgba(22,163,74,.25);
+    color: var(--success);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+button {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    padding: 10px 13px;
+    border-radius: 11px;
+    cursor: pointer;
+    font-weight: 750;
+    transition: transform .15s, box-shadow .15s;
+}
+
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 7px 18px rgba(15,23,42,.10);
+}
+
+.header-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+main {
+    padding: 20px;
+}
+
+.toolbar {
+    max-width: 1200px;
+    margin: 0 auto 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.editor-card {
+    max-width: 1200px;
+    height: calc(100vh - 245px);
+    min-height: 420px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 5px solid var(--primary);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+textarea {
+    flex: 1;
+    width: 100%;
+    resize: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    padding: 25px;
+    font-family: inherit;
+    font-size: 19px;
+    line-height: 1.65;
+}
+
+textarea::placeholder {
+    color: var(--muted);
+}
+
+.statusbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 16px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+}
+
+#saved {
+    color: var(--success);
+}
+
+.panel {
+    max-width: 1200px;
+    margin: 0 auto 12px;
+    padding: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: none;
+}
+
+.panel.open {
+    display: block;
+}
+
+.find-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+input {
+    flex: 1;
+    min-width: 180px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.history-item:last-child {
+    border-bottom: 0;
+}
+
+.history-info {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.notice {
+    max-width: 1200px;
+    margin: 12px auto 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+body.focus header,
+body.focus .toolbar,
+body.focus .panel,
+body.focus .notice {
+    display: none !important;
+}
+
+body.focus main {
+    padding: 0;
+}
+
+body.focus .editor-card {
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+}
+
+@media (max-width: 700px) {
+
+    .header-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    main {
+        padding: 10px;
+    }
+
+    .editor-card {
+        height: calc(100vh - 320px);
+    }
+
+    textarea {
+        padding: 18px;
+        font-size: 17px;
+    }
 }
 </style>
 </head>
+
 <body>
-<section class="top">
-  <div class="header">
-    <div>
-      <h1>OnlineNotepad</h1>
-      <div class="sub">Start typing. Your note saves automatically on this device.</div>
-    </div>
-    <div class="actions">
-      <button id="export">Export .txt</button>
-      <button id="theme">Change backround</button>
-      <button id="clear">Clear</button>
-    </div>
-  </div>
-  <div class="badges" aria-label="Trust badges">
-    <div class="badge">✓ No ads</div>
-    <div class="badge">✓ No signup</div>
-    <div class="badge">✓ No cost</div>
-    <div class="badge">✓ Private by default</div>
-  </div>
-</section>
 
-<main>
-  <section class="wrap">
-    <textarea id="note" autofocus placeholder="Type your note here..."></textarea>
-    <div class="status">
-      <span id="saved">Ready</span>
-      <span id="stats">0 words • 0 characters</span>
-    </div>
-  </section>
-</main>
+<header>
 
-<div class="notice">
-  <b>Important:</b> this notepad stores your note only in your browser. It is not uploaded, synced, sold, or shared.
+<div class="header-row">
+
+<div>
+<h1>OnlineNotepad</h1>
+
+<div class="subtitle">
+A better place for quick text.
+</div>
 </div>
 
+<div class="header-buttons">
+<button onclick="importFile()">Import</button>
+<button onclick="exportFile()">Export</button>
+<button onclick="toggleDark()">Dark Mode</button>
+</div>
+
+</div>
+
+<div class="badges">
+<div class="badge">✓ No ads</div>
+<div class="badge">✓ No signup</div>
+<div class="badge">✓ No cost</div>
+<div class="badge">✓ Saved automatically</div>
+<div class="badge">✓ Stored on your device</div>
+</div>
+
+</header>
+
+
+<main>
+
+<div class="toolbar">
+
+<button onclick="copyAll()">Copy All</button>
+
+<button onclick="toggleFind()">
+Find & Replace
+</button>
+
+<button onclick="cleanText()">
+Clean Text
+</button>
+
+<button onclick="uppercaseText()">
+UPPERCASE
+</button>
+
+<button onclick="lowercaseText()">
+lowercase
+</button>
+
+<button onclick="titleCaseText()">
+Title Case
+</button>
+
+<button onclick="toggleHistory()">
+History
+</button>
+
+<button onclick="toggleFocus()">
+Focus Mode
+</button>
+
+</div>
+
+
+<div id="findPanel" class="panel">
+
+<div class="find-row">
+
+<input
+id="findText"
+placeholder="Find text"
+>
+
+<input
+id="replaceText"
+placeholder="Replace with"
+>
+
+<button onclick="replaceOne()">
+Replace
+</button>
+
+<button onclick="replaceAll()">
+Replace All
+</button>
+
+</div>
+
+</div>
+
+
+<div id="historyPanel" class="panel">
+
+<strong>Local Version History</strong>
+
+<div class="history-info" style="margin-top:4px">
+The last 10 versions are stored only in this browser.
+</div>
+
+<div id="historyList"></div>
+
+</div>
+
+
+<div class="editor-card">
+
+<textarea
+id="editor"
+autofocus
+placeholder="Start typing..."
+></textarea>
+
+<div class="statusbar">
+
+<span id="saved">
+Ready
+</span>
+
+<span id="stats">
+0 words • 0 characters
+</span>
+
+</div>
+
+</div>
+
+
+<div class="notice">
+
+Your note and version history are stored in your browser using localStorage.
+Nothing is uploaded to a server.
+
+</div>
+
+</main>
+
+
+<input
+type="file"
+id="fileInput"
+accept=".txt,text/plain"
+hidden
+>
+
+
 <script>
-const KEY="onlinenotepad_one_note_text_v2";
-const THEME="onlinenotepad_one_note_dark_v2";
 
-const note=document.getElementById("note");
-const saved=document.getElementById("saved");
-const stats=document.getElementById("stats");
+const NOTE_KEY = "onlineNotepadTextV3";
+const HISTORY_KEY = "onlineNotepadHistoryV3";
+const DARK_KEY = "onlineNotepadDarkV3";
 
-note.value=localStorage.getItem(KEY)||"";
+const editor = document.getElementById("editor");
+const saved = document.getElementById("saved");
+const stats = document.getElementById("stats");
 
-if(localStorage.getItem(THEME)==="1"){
-  document.body.classList.add("dark");
+let history =
+JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+
+let saveTimer;
+
+let lastHistoryText = "";
+
+
+
+/* LOAD NOTE */
+
+editor.value =
+localStorage.getItem(NOTE_KEY) || "";
+
+
+
+/* LOAD DARK MODE */
+
+if(localStorage.getItem(DARK_KEY) === "1") {
+
+document.body.classList.add("dark");
+
 }
+
+
 
 updateStats();
-note.focus();
 
-function updateStats(){
-  const text=note.value;
-  const words=text.trim()?text.trim().split(/\s+/).length:0;
-  stats.textContent=`${words} words • ${text.length} characters`;
-}
 
-function flashStatus(message){
-  saved.textContent=message;
-  saved.classList.remove("saved");
-  void saved.offsetWidth;
-  saved.classList.add("saved");
-}
 
-note.addEventListener("input",()=>{
-  localStorage.setItem(KEY,note.value);
-  updateStats();
-  flashStatus("Saved ✓");
+/* AUTO SAVE */
+
+editor.addEventListener("input", () => {
+
+localStorage.setItem(
+NOTE_KEY,
+editor.value
+);
+
+saved.textContent = "Saved ✓";
+
+updateStats();
+
+
+clearTimeout(saveTimer);
+
+
+saveTimer = setTimeout(() => {
+
+saveVersion();
+
+}, 2000);
+
 });
 
-document.getElementById("export").onclick=()=>{
-  const text=note.value;
-  const firstLine=(text.split("\n")[0].trim()||"note")
-    .replace(/[^a-z0-9 _-]/gi,"")
-    .slice(0,40)||"note";
 
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"}));
-  a.download=firstLine+".txt";
-  a.click();
 
-  setTimeout(()=>URL.revokeObjectURL(a.href),500);
-  note.focus();
+/* STATS */
+
+function updateStats() {
+
+const text = editor.value;
+
+const words =
+text.trim()
+?
+text.trim().split(/\s+/).length
+:
+0;
+
+stats.textContent =
+words +
+" words • " +
+text.length +
+" characters";
+
+}
+
+
+
+/* COPY */
+
+async function copyAll() {
+
+try {
+
+await navigator.clipboard.writeText(
+editor.value
+);
+
+saved.textContent =
+"Copied ✓";
+
+}
+
+catch {
+
+editor.select();
+
+document.execCommand("copy");
+
+saved.textContent =
+"Copied ✓";
+
+}
+
+editor.focus();
+
+}
+
+
+
+/* IMPORT */
+
+function importFile() {
+
+document
+.getElementById("fileInput")
+.click();
+
+}
+
+
+document
+.getElementById("fileInput")
+.addEventListener("change", event => {
+
+const file =
+event.target.files[0];
+
+if(!file) return;
+
+
+const reader =
+new FileReader();
+
+
+reader.onload = () => {
+
+saveVersion();
+
+editor.value =
+reader.result;
+
+saveNow();
+
+saved.textContent =
+"Imported ✓";
+
 };
 
-document.getElementById("share").onclick=async()=>{
-  const url=window.location.href;
 
-  if(navigator.share){
-    try{
-      await navigator.share({
-        title:"OnlineNotepad",
-        text:"A simple online notepad with no signup, no ads, and local browser storage.",
-        url:url
-      });
+reader.readAsText(file);
 
-      flashStatus("Thanks for sharing ❤️");
-    }catch(e){
-      // User cancelled
-    }
-  }else{
-    try{
-      await navigator.clipboard.writeText(url);
-      flashStatus("Link copied ✓");
-      alert("The page link has been copied to your clipboard.");
-    }catch(e){
-      prompt("Copy this link:",url);
-    }
-  }
+event.target.value = "";
 
-  note.focus();
-};
+});
 
-document.getElementById("theme").onclick=()=>{
-  document.body.classList.toggle("dark");
 
-  localStorage.setItem(
-    THEME,
-    document.body.classList.contains("dark")?"1":"0"
-  );
 
-  note.focus();
-};
+/* EXPORT */
 
-document.getElementById("clear").onclick=()=>{
-  if(confirm("Clear the note?")){
-    note.value="";
-    localStorage.setItem(KEY,"");
-    updateStats();
-    flashStatus("Cleared");
-    note.focus();
-  }
-};
+function exportFile() {
+
+const text =
+editor.value;
+
+const firstLine =
+text
+.split("\n")[0]
+.trim()
+.replace(
+/[^a-z0-9 _-]/gi,
+""
+)
+.slice(0,40)
+||
+"note";
+
+
+const blob =
+new Blob(
+[text],
+{
+type:
+"text/plain"
+}
+);
+
+
+const url =
+URL.createObjectURL(blob);
+
+
+const link =
+document.createElement("a");
+
+
+link.href = url;
+
+link.download =
+firstLine + ".txt";
+
+
+link.click();
+
+
+setTimeout(() => {
+
+URL.revokeObjectURL(url);
+
+}, 500);
+
+
+saved.textContent =
+"Exported ✓";
+
+editor.focus();
+
+}
+
+
+
+/* FIND PANEL */
+
+function toggleFind() {
+
+document
+.getElementById("findPanel")
+.classList
+.toggle("open");
+
+}
+
+
+
+/* REPLACE ONE */
+
+function replaceOne() {
+
+const find =
+document
+.getElementById("findText")
+.value;
+
+
+const replacement =
+document
+.getElementById("replaceText")
+.value;
+
+
+if(!find) return;
+
+
+const start =
+editor.selectionStart;
+
+
+let index =
+editor.value.indexOf(
+find,
+start
+);
+
+
+if(index === -1) {
+
+index =
+editor.value.indexOf(find);
+
+}
+
+
+if(index === -1) {
+
+saved.textContent =
+"Text not found";
+
+return;
+
+}
+
+
+editor.setSelectionRange(
+index,
+index + find.length
+);
+
+
+editor.focus();
+
+
+editor.setRangeText(
+replacement,
+index,
+index + find.length,
+"end"
+);
+
+
+saveNow();
+
+}
+
+
+
+/* REPLACE ALL */
+
+function replaceAll() {
+
+const find =
+document
+.getElementById("findText")
+.value;
+
+
+const replacement =
+document
+.getElementById("replaceText")
+.value;
+
+
+if(!find) return;
+
+
+saveVersion();
+
+
+editor.value =
+editor.value
+.split(find)
+.join(replacement);
+
+
+saveNow();
+
+}
+
+
+
+/* CLEAN TEXT */
+
+function cleanText() {
+
+saveVersion();
+
+
+editor.value =
+editor.value
+
+.replace(
+/[ \t]+$/gm,
+""
+)
+
+.replace(
+/[ \t]{2,}/g,
+" "
+)
+
+.replace(
+/\n{3,}/g,
+"\n\n"
+)
+
+.trim();
+
+
+saveNow();
+
+saved.textContent =
+"Text cleaned ✓";
+
+}
+
+
+
+/* UPPERCASE */
+
+function uppercaseText() {
+
+saveVersion();
+
+editor.value =
+editor.value.toUpperCase();
+
+saveNow();
+
+}
+
+
+
+/* LOWERCASE */
+
+function lowercaseText() {
+
+saveVersion();
+
+editor.value =
+editor.value.toLowerCase();
+
+saveNow();
+
+}
+
+
+
+/* TITLE CASE */
+
+function titleCaseText() {
+
+saveVersion();
+
+
+editor.value =
+editor.value.toLowerCase()
+
+.replace(
+
+/\b\w/g,
+
+character =>
+character.toUpperCase()
+
+);
+
+
+saveNow();
+
+}
+
+
+
+/* DARK MODE */
+
+function toggleDark() {
+
+document.body
+.classList
+.toggle("dark");
+
+
+localStorage.setItem(
+
+DARK_KEY,
+
+document.body
+.classList
+.contains("dark")
+?
+"1"
+:
+"0"
+
+);
+
+
+editor.focus();
+
+}
+
+
+
+/* FOCUS MODE */
+
+function toggleFocus() {
+
+document.body
+.classList
+.toggle("focus");
+
+
+editor.focus();
+
+}
+
+
+
+/* HISTORY */
+
+function saveVersion() {
+
+const text =
+editor.value;
+
+
+if(
+!text.trim()
+||
+text === lastHistoryText
+) {
+
+return;
+
+}
+
+
+history.unshift({
+
+text,
+
+time:
+Date.now()
+
+});
+
+
+history =
+history.slice(0,10);
+
+
+lastHistoryText =
+text;
+
+
+localStorage.setItem(
+
+HISTORY_KEY,
+
+JSON.stringify(history)
+
+);
+
+
+renderHistory();
+
+}
+
+
+
+function toggleHistory() {
+
+const panel =
+document
+.getElementById("historyPanel");
+
+
+panel.classList
+.toggle("open");
+
+
+renderHistory();
+
+}
+
+
+
+function renderHistory() {
+
+const list =
+document
+.getElementById("historyList");
+
+
+list.innerHTML = "";
+
+
+if(!history.length) {
+
+list.innerHTML =
+'<div class="history-info" style="margin-top:12px">No previous versions yet.</div>';
+
+return;
+
+}
+
+
+history.forEach(
+
+(version,index) => {
+
+const item =
+document.createElement("div");
+
+
+item.className =
+"history-item";
+
+
+const date =
+new Date(version.time);
+
+
+const preview =
+version.text
+.replace(/\s+/g," ")
+.slice(0,60);
+
+
+item.innerHTML =
+
+'<div>' +
+
+'<div>' +
+escapeHTML(preview || "Empty version") +
+'</div>' +
+
+'<div class="history-info">' +
+date.toLocaleString() +
+'</div>' +
+
+'</div>' +
+
+'<button onclick="restoreVersion(' +
+index +
+')">Restore</button>';
+
+
+list.appendChild(item);
+
+}
+
+);
+
+}
+
+
+
+function restoreVersion(index) {
+
+if(!history[index]) return;
+
+
+saveVersion();
+
+
+editor.value =
+history[index].text;
+
+
+saveNow();
+
+
+saved.textContent =
+"Version restored ✓";
+
+
+editor.focus();
+
+}
+
+
+
+/* SAVE NOW */
+
+function saveNow() {
+
+localStorage.setItem(
+
+NOTE_KEY,
+
+editor.value
+
+);
+
+
+updateStats();
+
+
+saved.textContent =
+"Saved ✓";
+
+
+editor.focus();
+
+}
+
+
+
+/* ESCAPE HTML */
+
+function escapeHTML(text) {
+
+const div =
+document.createElement("div");
+
+div.textContent =
+text;
+
+return div.innerHTML;
+
+}
+
+
+
+/* KEYBOARD SHORTCUTS */
+
+document.addEventListener("keydown", event => {
+
+if(
+(event.ctrlKey || event.metaKey)
+&&
+event.key.toLowerCase() === "s"
+) {
+
+event.preventDefault();
+
+exportFile();
+
+}
+
+
+if(
+(event.ctrlKey || event.metaKey)
+&&
+event.key.toLowerCase() === "f"
+) {
+
+event.preventDefault();
+
+toggleFind();
+
+document
+.getElementById("findText")
+.focus();
+
+}
+
+
+if(
+event.key === "Escape"
+&&
+document.body.classList.contains("focus")
+) {
+
+toggleFocus();
+
+}
+
+});
+
+
+
+renderHistory();
+
+editor.focus();
+
 </script>
+
 </body>
 </html>
