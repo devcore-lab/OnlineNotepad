@@ -1,0 +1,17 @@
+{
+  "name": "zeropad-complete",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zeropad complete app with accounts, notes history, code editor, ads, analytics and admin dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.7.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1"
+  }
+}
