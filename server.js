@@ -28,11 +28,11 @@ with your actual password.
 */
 
 const ADMIN_PASSWORD =
-  process.env.ADMIN_PASSWORD || "CHOOSE-YOUR-PASSWORD";
+  process.env.ADMIN_PASSWORD || "Admin123!";
 
 const SESSION_SECRET =
   process.env.SESSION_SECRET ||
-  "zeropad-" + crypto.randomBytes(32).toString("hex");
+  "zeropad-development-secret-change-before-deployment";
 
 
 /*
@@ -117,6 +117,71 @@ CREATE TABLE IF NOT EXISTS ad_events (
 
 /*
 =========================================================
+PERSISTENT SESSIONS AND ADMIN ACCOUNT
+=========================================================
+*/
+
+// Keep sessions in the existing SQLite database across server restarts.
+db.exec(`
+CREATE TABLE IF NOT EXISTS sessions (
+  sid TEXT PRIMARY KEY,
+  sess TEXT NOT NULL,
+  expires INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
+`);
+
+class SQLiteSessionStore extends session.Store {
+  get(sid, callback) {
+    try {
+      const row = db.prepare("SELECT sess, expires FROM sessions WHERE sid = ?").get(sid);
+      if (!row) return callback(null, null);
+      if (row.expires <= Date.now()) {
+        db.prepare("DELETE FROM sessions WHERE sid = ?").run(sid);
+        return callback(null, null);
+      }
+      callback(null, JSON.parse(row.sess));
+    } catch (error) { callback(error); }
+  }
+  set(sid, sess, callback = () => {}) {
+    try {
+      const expires = sess.cookie && sess.cookie.expires
+        ? new Date(sess.cookie.expires).getTime()
+        : Date.now() + 30 * 24 * 60 * 60 * 1000;
+      db.prepare(`INSERT INTO sessions (sid, sess, expires) VALUES (?, ?, ?)
+        ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expires = excluded.expires`)
+        .run(sid, JSON.stringify(sess), expires);
+      callback(null);
+    } catch (error) { callback(error); }
+  }
+  destroy(sid, callback = () => {}) {
+    try { db.prepare("DELETE FROM sessions WHERE sid = ?").run(sid); callback(null); }
+    catch (error) { callback(error); }
+  }
+  touch(sid, sess, callback = () => {}) { this.set(sid, sess, callback); }
+}
+
+// An admin is a real user, so all user-owned advanced features work normally.
+// On startup, sync the admin password with ADMIN_PASSWORD.
+const adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 12);
+const existingAdmin = db.prepare("SELECT id FROM users WHERE email = 'admin'").get();
+if (existingAdmin) {
+  db.prepare("UPDATE users SET password_hash = ?, display_name = ? WHERE id = ?")
+    .run(adminHash, "Administrator", existingAdmin.id);
+} else {
+  db.prepare("INSERT INTO users (email, password_hash, display_name, created_at) VALUES (?, ?, ?, ?)")
+    .run("admin", adminHash, "Administrator", new Date().toISOString());
+}
+
+if (!process.env.ADMIN_PASSWORD) {
+  console.warn("WARNING: Default admin password active. Set ADMIN_PASSWORD before public deployment.");
+}
+if (!process.env.SESSION_SECRET) {
+  console.warn("WARNING: Set SESSION_SECRET to a unique long secret before public deployment.");
+}
+
+/*
+=========================================================
 EXPRESS
 =========================================================
 */
@@ -144,6 +209,8 @@ app.use(
   session({
     name: "zeropad.sid",
 
+    store: new SQLiteSessionStore(),
+
     secret: SESSION_SECRET,
 
     resave: false,
@@ -157,8 +224,7 @@ app.use(
       sameSite: "lax",
 
       // HTTPS production sites
-      secure:
-        process.env.NODE_ENV === "production",
+      secure: "auto",
 
       maxAge:
         1000 *
@@ -198,7 +264,7 @@ function cleanEmail(value) {
 
 function safeUser(id) {
 
-  return db.prepare(`
+  const user = db.prepare(`
     SELECT
       id,
       email,
@@ -207,6 +273,7 @@ function safeUser(id) {
     FROM users
     WHERE id = ?
   `).get(id);
+  return user ? { ...user, isAdmin: user.email === "admin", role: user.email === "admin" ? "admin" : "user" } : null;
 
 }
 
@@ -1632,8 +1699,8 @@ app.get(
 
 
     if (
-      password !==
-      ADMIN_PASSWORD
+      (!req.session.userId || safeUser(req.session.userId)?.email !== "admin") &&
+      password !== ADMIN_PASSWORD
     ) {
 
       return res
@@ -1782,4 +1849,3 @@ app.listen(
     );
 
   }
-);
