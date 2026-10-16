@@ -30,9 +30,11 @@ with your actual password.
 const ADMIN_PASSWORD =
   process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "Admin123!");
 
-const SESSION_SECRET =
-  process.env.SESSION_SECRET ||
+const SESSION_SECRET = process.env.SESSION_SECRET ||
   "zeropad-development-session-secret-change-in-production";
+if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  throw new Error("Set SESSION_SECRET in your hosting environment to keep logins working securely.");
+}
 
 
 /*
@@ -641,6 +643,7 @@ CURRENT USER
 app.get(
   "/api/me",
   (req, res) => {
+    res.set("Cache-Control", "no-store");
 
     if (!req.session.userId) {
 
@@ -1049,6 +1052,12 @@ app.get(
 
     }
 
+
+    const browserId = String(req.query.browserId || "").slice(0, 120);
+    const allowed = note.user_id != null
+      ? Number(note.user_id) === Number(req.session.userId || 0)
+      : Boolean(browserId && note.browser_id === browserId);
+    if (!allowed) return res.status(403).json({ error: "Not allowed" });
 
     res.json({
 
@@ -1694,9 +1703,11 @@ app.get(
       );
 
 
-    if (
-      (!ADMIN_PASSWORD || password !== ADMIN_PASSWORD)
-    ) {
+    const adminAuthenticated = Boolean(req.session && req.session.isAdmin && req.session.userId);
+    const headerAuthenticated = Boolean(ADMIN_PASSWORD && password &&
+      password.length === ADMIN_PASSWORD.length &&
+      crypto.timingSafeEqual(Buffer.from(password), Buffer.from(ADMIN_PASSWORD)));
+    if (!adminAuthenticated && !headerAuthenticated) {
 
       return res
         .status(401)
