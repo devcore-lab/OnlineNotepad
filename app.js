@@ -23,7 +23,9 @@ function syncAuth() {
 }
 async function refreshAuth() {
   try {
-    const result = await api('/api/me');
+    let result;
+    try { result = await api('/api/me'); }
+    catch (firstError) { result = await api('/api/me'); }
     currentUser = result.user || null;
     if (!currentUser) showMessage('authMessage', 'No active server session. Log in again. If this persists, check that the browser accepts the zeropad.sid cookie.');
   } catch (error) {
@@ -56,7 +58,8 @@ async function authSubmit(event, endpoint) {
     if (!currentUser) throw Error('Login succeeded but the session was not retained. Check HTTPS, cookies and SESSION_SECRET.');
     showMessage('authMessage', endpoint === '/api/register' ? 'Account created. You are now logged in.' : 'Logged in successfully.');
     event.currentTarget.reset();
-    if (location.hash === '#code' || location.hash === '#advertise') await navigate(location.hash.slice(1));
+    // Unlock immediately after the verified /api/me response.
+    syncAuth();
   } catch (error) { showMessage('authMessage', error.message); }
   finally { button.disabled = false; }
 }
@@ -177,7 +180,7 @@ $('historyBtn').onclick = async () => {
       panel.append(b);
     }
     if (currentNoteId) {
-      const {history} = await api(`/api/notes/${currentNoteId}/history`);
+      const {history} = await api(`/api/notes/${currentNoteId}/history?browserId=${encodeURIComponent(browserId)}`);
       for (const version of history) { const b = document.createElement('button'); b.textContent = `Restore ${new Date(version.created_at).toLocaleString()}`; b.onclick = () => { $('note').value = version.content; wordCount(); scheduleSave(); toggle('historyPanel',false); }; panel.append(b); }
     }
     toggle('historyPanel',true);
