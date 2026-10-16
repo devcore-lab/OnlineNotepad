@@ -28,11 +28,11 @@ with your actual password.
 */
 
 const ADMIN_PASSWORD =
-  process.env.ADMIN_PASSWORD || "Admin123!";
+  process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "Admin123!");
 
 const SESSION_SECRET =
   process.env.SESSION_SECRET ||
-  "zeropad-development-secret-change-before-deployment";
+  "zeropad-development-session-secret-change-in-production";
 
 
 /*
@@ -117,71 +117,6 @@ CREATE TABLE IF NOT EXISTS ad_events (
 
 /*
 =========================================================
-PERSISTENT SESSIONS AND ADMIN ACCOUNT
-=========================================================
-*/
-
-// Keep sessions in the existing SQLite database across server restarts.
-db.exec(`
-CREATE TABLE IF NOT EXISTS sessions (
-  sid TEXT PRIMARY KEY,
-  sess TEXT NOT NULL,
-  expires INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
-`);
-
-class SQLiteSessionStore extends session.Store {
-  get(sid, callback) {
-    try {
-      const row = db.prepare("SELECT sess, expires FROM sessions WHERE sid = ?").get(sid);
-      if (!row) return callback(null, null);
-      if (row.expires <= Date.now()) {
-        db.prepare("DELETE FROM sessions WHERE sid = ?").run(sid);
-        return callback(null, null);
-      }
-      callback(null, JSON.parse(row.sess));
-    } catch (error) { callback(error); }
-  }
-  set(sid, sess, callback = () => {}) {
-    try {
-      const expires = sess.cookie && sess.cookie.expires
-        ? new Date(sess.cookie.expires).getTime()
-        : Date.now() + 30 * 24 * 60 * 60 * 1000;
-      db.prepare(`INSERT INTO sessions (sid, sess, expires) VALUES (?, ?, ?)
-        ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expires = excluded.expires`)
-        .run(sid, JSON.stringify(sess), expires);
-      callback(null);
-    } catch (error) { callback(error); }
-  }
-  destroy(sid, callback = () => {}) {
-    try { db.prepare("DELETE FROM sessions WHERE sid = ?").run(sid); callback(null); }
-    catch (error) { callback(error); }
-  }
-  touch(sid, sess, callback = () => {}) { this.set(sid, sess, callback); }
-}
-
-// An admin is a real user, so all user-owned advanced features work normally.
-// On startup, sync the admin password with ADMIN_PASSWORD.
-const adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 12);
-const existingAdmin = db.prepare("SELECT id FROM users WHERE email = 'admin'").get();
-if (existingAdmin) {
-  db.prepare("UPDATE users SET password_hash = ?, display_name = ? WHERE id = ?")
-    .run(adminHash, "Administrator", existingAdmin.id);
-} else {
-  db.prepare("INSERT INTO users (email, password_hash, display_name, created_at) VALUES (?, ?, ?, ?)")
-    .run("admin", adminHash, "Administrator", new Date().toISOString());
-}
-
-if (!process.env.ADMIN_PASSWORD) {
-  console.warn("WARNING: Default admin password active. Set ADMIN_PASSWORD before public deployment.");
-}
-if (!process.env.SESSION_SECRET) {
-  console.warn("WARNING: Set SESSION_SECRET to a unique long secret before public deployment.");
-}
-
-/*
-=========================================================
 EXPRESS
 =========================================================
 */
@@ -205,11 +140,44 @@ SESSIONS
 =========================================================
 */
 
+// Persistent SQLite session store. Keeps authentication across restarts.
+class SQLiteSessionStore extends session.Store {
+  constructor() {
+    super();
+    db.exec(`CREATE TABLE IF NOT EXISTS login_sessions (
+      sid TEXT PRIMARY KEY, data TEXT NOT NULL, expires INTEGER NOT NULL
+    )`);
+  }
+  get(sid, callback) {
+    try {
+      const row = db.prepare("SELECT data, expires FROM login_sessions WHERE sid = ?").get(sid);
+      if (!row || row.expires < Date.now()) {
+        if (row) db.prepare("DELETE FROM login_sessions WHERE sid = ?").run(sid);
+        return callback(null, null);
+      }
+      callback(null, JSON.parse(row.data));
+    } catch (err) { callback(err); }
+  }
+  set(sid, value, callback = () => {}) {
+    try {
+      const expires = value.cookie?.expires ? new Date(value.cookie.expires).getTime() : Date.now() + 2592000000;
+      db.prepare("INSERT INTO login_sessions(sid,data,expires) VALUES(?,?,?) ON CONFLICT(sid) DO UPDATE SET data=excluded.data,expires=excluded.expires")
+        .run(sid, JSON.stringify(value), expires);
+      callback(null);
+    } catch (err) { callback(err); }
+  }
+  destroy(sid, callback = () => {}) {
+    try { db.prepare("DELETE FROM login_sessions WHERE sid = ?").run(sid); callback(null); }
+    catch (err) { callback(err); }
+  }
+  touch(sid, value, callback = () => {}) { this.set(sid, value, callback); }
+}
+
 app.use(
   session({
-    name: "zeropad.sid",
-
     store: new SQLiteSessionStore(),
+    proxy: true,
+    name: "zeropad.sid",
 
     secret: SESSION_SECRET,
 
@@ -236,6 +204,14 @@ app.use(
   })
 );
 
+
+// Avoid stale HTML and authentication scripts after a deployment.
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path === '/index.html' || req.path === '/app.js') {
+    res.set('Cache-Control', 'no-store, max-age=0');
+  }
+  next();
+});
 
 app.use(
   express.static(
@@ -264,7 +240,7 @@ function cleanEmail(value) {
 
 function safeUser(id) {
 
-  const user = db.prepare(`
+  return db.prepare(`
     SELECT
       id,
       email,
@@ -273,7 +249,6 @@ function safeUser(id) {
     FROM users
     WHERE id = ?
   `).get(id);
-  return user ? { ...user, isAdmin: user.email === "admin", role: user.email === "admin" ? "admin" : "user" } : null;
 
 }
 
@@ -500,6 +475,27 @@ app.post(
         );
 
 
+      // Admin uses the same account session and feature permissions.
+      // The initial password is development-only; set ADMIN_PASSWORD in production.
+      if (email === "admin" && ADMIN_PASSWORD && password === ADMIN_PASSWORD) {
+        let admin = db.prepare("SELECT * FROM users WHERE email = ?").get("admin@zeropad.local");
+        if (!admin) {
+          const hash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12);
+          const result = db.prepare("INSERT INTO users (email,password_hash,display_name,created_at) VALUES (?,?,?,?)")
+            .run("admin@zeropad.local", hash, "Administrator", now());
+          admin = db.prepare("SELECT * FROM users WHERE id = ?").get(result.lastInsertRowid);
+        }
+        return req.session.regenerate(err => {
+          if (err) return res.status(500).json({error:"Could not start login session."});
+          req.session.userId = admin.id;
+          req.session.isAdmin = true;
+          req.session.save(err => {
+            if (err) return res.status(500).json({error:"Could not save login."});
+            res.json({success:true,user:{...safeUser(admin.id),isAdmin:true}});
+          });
+        });
+      }
+
       /*
       Find account
       */
@@ -677,7 +673,7 @@ app.get(
 
 
     res.json({
-      user
+      user: {...user, isAdmin: !!req.session.isAdmin}
     });
 
   }
@@ -1699,8 +1695,7 @@ app.get(
 
 
     if (
-      (!req.session.userId || safeUser(req.session.userId)?.email !== "admin") &&
-      password !== ADMIN_PASSWORD
+      (!ADMIN_PASSWORD || password !== ADMIN_PASSWORD)
     ) {
 
       return res
@@ -1819,7 +1814,7 @@ FRONTEND
 */
 
 app.get(
-  "*",
+  "/{*path}",
   (req, res) => {
 
     res.sendFile(
@@ -1849,3 +1844,4 @@ app.listen(
     );
 
   }
+);
