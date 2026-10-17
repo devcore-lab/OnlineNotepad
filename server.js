@@ -1843,15 +1843,3 @@ START
 app.listen(PORT, () => {
   console.log(`Zeropad running on port ${PORT}`);
 });
-*/
-
-app.listen(
-  PORT,
-  () => {
-
-    console.log(
-      `Zeropad running on port ${PORT}`
-    );
-
-  }
-);
