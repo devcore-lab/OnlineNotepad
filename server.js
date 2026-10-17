@@ -276,6 +276,15 @@ REGISTER
 =========================================================
 */
 
+// Public account creation and login have been retired.
+// Do not expose legacy user or project APIs after removing public authentication.
+app.use((req, res, next) => {
+  if (/^\/api\/(register|login|logout|me|projects)(?:\/|$)/.test(req.path) || /^\/api\/campaigns(?:\/|$)/.test(req.path)) {
+    return res.status(410).json({error: 'Public accounts and account-based APIs have been retired.'});
+  }
+  next();
+});
+
 app.post(
   "/api/register",
   async (req, res) => {
@@ -1707,7 +1716,7 @@ app.get(
     const headerAuthenticated = Boolean(ADMIN_PASSWORD && password &&
       password.length === ADMIN_PASSWORD.length &&
       crypto.timingSafeEqual(Buffer.from(password), Buffer.from(ADMIN_PASSWORD)));
-    if (!adminAuthenticated && !headerAuthenticated) {
+    if (!headerAuthenticated) {
 
       return res
         .status(401)
@@ -1825,7 +1834,7 @@ FRONTEND
 */
 
 app.get(
-  "/{*path}",
+  "*",
   (req, res) => {
 
     res.sendFile(
